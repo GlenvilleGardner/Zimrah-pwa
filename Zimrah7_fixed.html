@@ -1,0 +1,1092 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- PWA Meta Tags -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#667eea">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Zimrah">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+
+<!-- Windows/Microsoft -->
+<meta name="msapplication-TileImage" content="icons/icon-192.png">
+<meta name="msapplication-TileColor" content="#667eea">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zimrah — HPC cycle planner & health tracker</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg-grad-1: #667eea; --bg-grad-2: #764ba2;
+      --card-bg: rgba(255,255,255,0.96); --text: #1f2937; --muted: #6b7280;
+      --border: #e5e7eb; --soft: #f3f4f6; --shadow: 0 18px 45px rgba(0,0,0,.12);
+      --accent: #667eea; --accent2: #6c5ce7; --good:#10b981; --warn:#f59e0b; --bad:#ef4444;
+    }
+    body.dark {
+      --bg-grad-1: #0f172a; --bg-grad-2: #111827;
+      --card-bg: rgba(17, 24, 39, 0.96); --text: #e5e7eb; --muted: #9ca3af; --border: #334155; --soft:#111827;
+    }
+    body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background: linear-gradient(135deg, var(--bg-grad-1), var(--bg-grad-2)); min-height:100vh; color: var(--text); padding: 20px; }
+
+    .app { max-width: 1280px; margin: 0 auto; background: var(--card-bg); border-radius: 22px; box-shadow: var(--shadow); padding: 28px; }
+    .header { display:grid; grid-template-columns: 1fr auto; gap:16px; align-items: start; padding-bottom: 16px; border-bottom: 3px solid var(--accent); }
+    .title h1 { font-size: 1.9rem; font-weight: 900; letter-spacing: .2px; }
+    .title p { color: var(--muted); margin-top: 4px; }
+    .controls { display:flex; gap:10px; flex-wrap: wrap; justify-content: end; }
+    .select, .button { border:2px solid var(--border); background:#fff; color:#111; padding:10px 12px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+    body.dark .select, body.dark .button { background:#0b1220; color:#e5e7eb; }
+    .button.primary { border: none; background: linear-gradient(45deg, var(--accent), var(--accent2)); color:#fff; }
+
+    .tabbar { display:flex; flex-wrap:wrap; gap:10px; margin:16px 0 22px; }
+    .tab { padding: 10px 16px; border:none; border-radius: 24px; background: #f3f4f6; color:#111; font-weight:800; cursor:pointer; transition:.22s; }
+    .tab.active { background: linear-gradient(45deg, var(--accent), var(--accent2)); color:#fff; transform: translateY(-2px); box-shadow: 0 6px 18px rgba(102,126,234,.35); }
+
+    .grid { display:grid; grid-template-columns: 1fr 360px; gap: 22px; margin-bottom: 22px; }
+    .card { background:#fff; border:1px solid var(--border); border-radius: 16px; padding: 18px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+    body.dark .card { background:#0b1220; }
+    .card h3 { font-size: 1.1rem; margin-bottom: 10px; }
+
+    .board { width:100%; border-collapse: collapse; }
+    .board th { background: linear-gradient(45deg, var(--accent), var(--accent2)); color:#fff; padding: 10px 6px; font-size:.9em; }
+    .board td { padding: 10px 6px; text-align:center; border: 1px solid var(--border); background:#fff; vertical-align: top; height:64px; position:relative; transition:.16s; cursor:pointer; }
+    body.dark .board td { background:#0f172a; }
+    .board td:hover { background:#f9fafb; transform: scale(1.015); }
+    body.dark .board td:hover { background:#0f172a; filter: brightness(1.1); }
+    .day { font-weight:900; font-size:1.02em; margin-bottom: 4px; }
+    .dots { display:flex; gap:2px; justify-content:center; flex-wrap:wrap; }
+    .dot { width:8px; height:8px; border-radius:999px; opacity:.95; }
+
+    /* fertility states */
+    .menstrual{background:#ef4444;} .follicular{background:#f59e0b;} .ovulation{background:#10b981;} .luteal{background:#8b5cf6;}
+    /* sleep */
+    .deep-sleep{background:#334155;} .rem-sleep{background:#38bdf8;} .light-sleep{background:#93c5fd;} .awake{background:#eab308;}
+    /* health */
+    .high-energy{background:#10b981;} .medium-energy{background:#f59e0b;} .low-energy{background:#fb7185;} .rest-day{background:#64748b;}
+    /* work */
+    .focus-time{background:#06b6d4;} .creative-time{background:#a78bfa;} .admin-time{background:#fde68a;} .break-time{background:#fb7185;}
+
+    .group { margin-bottom: 12px; }
+    label { font-weight: 800; margin-bottom: 6px; display:block; }
+    input[type="text"], input[type="number"], input[type="date"], input[type="time"], textarea, select { width:100%; padding:10px 12px; border:2px solid var(--border); border-radius: 12px; background:#fff; }
+    body.dark input, body.dark select, body.dark textarea { background:#0f172a; color:#e5e7eb; }
+    textarea { min-height: 80px; }
+	/* Fix for date/time input icons in dark mode */
+    body.dark input[type="date"], body.dark input[type="time"] {
+    color-scheme: dark;
+    }
+
+    .chip { background:#f3f4f6; border:2px solid var(--border); padding:8px 10px; border-radius: 14px; font-weight:700; cursor:pointer; margin:4px; }
+    .chip[aria-pressed="true"] { background: var(--accent); color:#fff; border-color: var(--accent); }
+
+    .legend { display:flex; flex-wrap:wrap; gap:10px; margin-top: 12px; justify-content:center; }
+    .legend-item { display:flex; align-items:center; gap:8px; padding:6px 12px; background:#f3f4f6; border-radius:14px; font-size:.85em; border:1px solid var(--border); }
+    .square { width:12px; height:12px; border-radius:3px; }
+
+    .stats { display:grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin-top: 8px; }
+    .stat { background:#fff; border:1px solid var(--border); border-radius: 12px; text-align:center; padding: 10px; }
+    body.dark .stat { background:#0b1220; }
+    .stat .num { font-size:1.5rem; font-weight: 900; color: var(--accent); }
+    .stat .lbl { font-size:.86rem; color: var(--muted); font-weight:800; }
+
+    .panel-row { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 10px; margin-top: 6px; }
+
+    .notice { background:linear-gradient(135deg,#22d3ee,#6366f1); color:#fff; border-radius: 14px; padding: 12px; margin: 16px 0 8px; }
+    .notice .item { background: rgba(255,255,255,.16); padding: 10px; border-radius: 10px; margin: 8px 0; border-left: 4px solid #fff; }
+
+    .pred { background:linear-gradient(135deg,#a78bfa,#6366f1); color:#fff; border-radius: 14px; padding: 12px; }
+    .pred .row { display:flex; justify-content:space-between; align-items:center; background: rgba(255,255,255,.18); border-radius: 10px; padding: 8px 10px; margin: 8px 0; }
+
+    .privacy { background: linear-gradient(135deg, #14b8a6, #0ea5e9); color:#fff; border-radius: 14px; padding: 14px; }
+    .privacy .row { display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center; margin:6px 0; }
+
+    .export { background:#f3f4f6; border:1px solid var(--border); border-radius:14px; padding: 12px; text-align:center; margin-top: 12px; }
+
+    .charts { display:grid; grid-template-columns: 1fr; gap:14px; }
+    canvas { width:100%; height:260px; border:1px dashed var(--border); border-radius:12px; background:#fff; }
+    body.dark canvas { background:#0b1220; }
+
+    .toast { position: fixed; right: 16px; bottom: 16px; background:#0ea5e9; color:#fff; font-weight:800; padding: 10px 14px; border-radius: 12px; box-shadow: 0 12px 28px rgba(2,132,199,.35); transform: translateY(20px); opacity:0; pointer-events:none; transition:.25s; }
+    .toast.show { transform: translateY(0); opacity:1; }
+
+    /* Print-friendly report */
+    @media print {
+      body { padding:0; background:#fff; }
+      .controls, .tabbar, #darkToggle, #printBtn, #exportCsv, #exportJson, #importJsonBtn, #lockNow, #anonToggle, #setPass, #copyPartner, #importPartner { display: none !important; }
+      .app { box-shadow:none; border-radius:0; }
+      canvas { border: none; }
+    }
+
+    @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } .controls { justify-content:start; } }
+  
+/* === Zimrah fixes (runover + dark-mode legibility) === */
+html, body { overflow-x: hidden; }
+* { min-width: 0; }
+h1, h2, h3, h4, h5, h6, p, small, label, button, .tab, .chip { overflow-wrap: anywhere; word-break: break-word; }
+.board td, .card { overflow: hidden; }
+
+/* Dark mode legibility for tabs and card captions */
+body.dark, body.dark .card { color: #e5e7eb !important; }
+body.dark .tab { background: #111827 !important; color: #e5e7eb !important; border-color: #334155 !important; }
+body.dark .tab.active { background: linear-gradient(45deg, #667eea, #6c5ce7) !important; color: #ffffff !important; }
+body.dark .legend-item, body.dark .chip { background: #1f2937 !important; color: #e5e7eb !important; border-color: #334155 !important; }
+body.dark label, body.dark small, body.dark p, body.dark .lbl { color: #e5e7eb !important; }
+body.dark .board td { background: #0f172a !important; color: #e5e7eb !important; }
+
+/* Ensure header/top and footer/bottom areas don't bleed */
+.app, header, footer { overflow: hidden; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="title">
+        <h1>Zimrah — HPC cycle planner & health tracker</h1>
+        <p>Local, private, and extensible. Built for HPC 28-day rhythm — with lifecycle modes, insights, secure lock, and partner-friendly sharing.</p>
+      </div>
+      <div class="controls" role="toolbar">
+        <select id="lifecycleMode" class="select" title="Lifecycle mode">
+          <option value="cycle" selected>Menstrual Cycle</option>
+          <option value="ttc">Trying to Conceive (TTC)</option>
+          <option value="pregnancy">Pregnancy</option>
+          <option value="peri">Perimenopause</option>
+        </select>
+       <select id="weekStart" class="select" title="Week starts on">
+  <option value="Sun">Sun</option>
+  <option value="Mon">Mon</option>
+  <option value="Tue">Tue</option>
+  <option value="Wed">Wed</option>
+  <option value="Thu">Thu (HPC)</option>
+  <option value="Fri">Fri</option>
+  <option value="Sat">Sat</option>
+</select>
+        <button id="darkToggle" class="button" aria-pressed="false">🌙 Dark</button>
+        <button id="printBtn" class="button">🖨️ Print / PDF</button>
+        <button id="exportCsv" class="button primary">⬇️ Export CSV</button>
+        <button id="exportJson" class="button">🧾 Export JSON</button>
+        <button id="importJsonBtn" class="button">📥 Import</button>
+      </div>
+    </header>
+
+    <nav class="tabbar" role="tablist">
+      <button class="tab active" role="tab" aria-selected="true" aria-controls="fertility" id="tab-fertility">🌸 Fertility</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="sleep" id="tab-sleep">😴 Sleep</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="health" id="tab-health">💪 Health</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="work" id="tab-work">💼 Work</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="custom" id="tab-custom">⚙️ Custom</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="insights" id="tab-insights">📈 Insights</button>
+    </nav>
+    <!-- FERTILITY -->
+    <section id="fertility" class="pane" role="tabpanel" aria-labelledby="tab-fertility">
+      <div class="grid">
+        <div class="card">
+          <h3>🌸 Cycle Board (28-day)</h3>
+          <table class="board" aria-label="Fertility 28-day board">
+            <thead><tr id="fertilityHeaders"></tr></thead>
+            <tbody id="fertilityBody"></tbody>
+          </table>
+          <div class="legend">
+            <div class="legend-item"><span class="square menstrual"></span><span>Menstrual</span></div>
+            <div class="legend-item"><span class="square follicular"></span><span>Follicular</span></div>
+            <div class="legend-item"><span class="square ovulation"></span><span>Ovulation</span></div>
+            <div class="legend-item"><span class="square luteal"></span><span>Luteal</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>📝 Daily Tracking</h3>
+          <div class="group"><label for="lastPeriodDate">Last Period Start (Gregorian)</label><input type="date" id="lastPeriodDate"></div>
+          <div class="panel-row">
+            <div class="group"><label for="cycleLength">Cycle Length (days)</label><select id="cycleLength"><option>28</option><option>25</option><option>30</option><option>32</option><option>35</option></select></div>
+            <div class="group"><label for="flowIntensity">Flow</label><select id="flowIntensity"><option value="">Select…</option><option>Spotting</option><option>Light</option><option>Medium</option><option>Heavy</option></select></div>
+          </div>
+          <div class="group"><label>Symptoms</label>
+            <div>
+              <button class="chip" data-key="cramps" aria-pressed="false">Cramps</button>
+              <button class="chip" data-key="bloating" aria-pressed="false">Bloating</button>
+              <button class="chip" data-key="mood" aria-pressed="false">Mood</button>
+              <button class="chip" data-key="headache" aria-pressed="false">Headache</button>
+              <button class="chip" data-key="backache" aria-pressed="false">Backache</button>
+              <button class="chip" data-key="energyLow" aria-pressed="false">Low Energy</button>
+            </div>
+          </div>
+          <div class="panel-row">
+            <div class="group"><label for="moodLevel">Mood (1–10): <span id="moodDisplay">5/10</span></label><input type="range" id="moodLevel" min="1" max="10" value="5"></div>
+            <div class="group"><label for="bbt">Basal Body Temp (°C)</label><input type="number" id="bbt" step="0.01" placeholder="36.55"></div>
+          </div>
+          <div class="panel-row">
+            <div class="group" id="ttcRow" style="display:none">
+              <label>LH Test</label>
+              <div>
+                <button class="chip" data-key="lh-positive" aria-pressed="false">Positive</button>
+                <button class="chip" data-key="lh-negative" aria-pressed="false">Negative</button>
+              </div>
+            </div>
+            <div class="group" id="cervicalRow" style="display:none">
+              <label for="cervical">Cervical Mucus</label>
+              <select id="cervical"><option value="">—</option><option>Dry</option><option>Sticky</option><option>Creamy</option><option>Egg-white</option></select>
+            </div>
+          </div>
+          <div class="group"><label for="fertilityNotes">Notes</label><textarea id="fertilityNotes" placeholder="Additional notes about today…"></textarea></div>
+          <button class="button primary" id="saveFertility">💾 Save Today</button>
+
+          <div class="stats">
+            <div class="stat"><div class="num" id="cycleDayNumber">–</div><div class="lbl">Current Day</div></div>
+            <div class="stat"><div class="num" id="daysToOvulation">–</div><div class="lbl">Days to Ovulation</div></div>
+            <div class="stat"><div class="num" id="daysToNextPeriod">–</div><div class="lbl">Days to Next Period</div></div>
+            <div class="stat"><div class="num" id="avgCycleLength">–</div><div class="lbl">Avg Cycle (6)</div></div>
+            <div class="stat"><div class="num" id="periIndex">–</div><div class="lbl">Variability Index</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="notice">
+        <h3>🔔 Cycle Alerts</h3>
+        <div id="fertilityAlerts" class="item">Set LMP and cycle length to activate predictions and reminders.</div>
+      </div>
+
+      <div class="pred">
+        <h3>🔮 Predictions</h3>
+        <div class="row"><span>Next Period</span><span id="nextPeriodDate">—</span></div>
+        <div class="row"><span>Next Ovulation</span><span id="nextOvulationDate">—</span></div>
+        <div class="row"><span>Fertile Window</span><span id="nextFertileWindow">—</span></div>
+        <div class="row" id="dueDateRow" style="display:none"><span>Estimated Due Date</span><span id="dueDate">—</span></div>
+      </div>
+    </section>
+    <!-- SLEEP -->
+    <section id="sleep" class="pane" role="tabpanel" aria-labelledby="tab-sleep" hidden>
+      <div class="grid">
+        <div class="card">
+          <h3>😴 Sleep Board (28-day)</h3>
+          <table class="board"><thead><tr id="sleepHeaders"></tr></thead><tbody id="sleepBody"></tbody></table>
+          <div class="legend">
+            <div class="legend-item"><span class="square deep-sleep"></span><span>Deep (8h+)</span></div>
+            <div class="legend-item"><span class="square rem-sleep"></span><span>Quality (6–8h)</span></div>
+            <div class="legend-item"><span class="square light-sleep"></span><span>Light (4–6h)</span></div>
+            <div class="legend-item"><span class="square awake"></span><span>Poor (&lt;4h)</span></div>
+          </div>
+        </div>
+        <div className="card">
+          <h3>🌙 Sleep Tracking</h3>
+          <div class="group"><label for="bedtime">Bedtime</label><input type="time" id="bedtime"></div>
+          <div class="group"><label for="wakeTime">Wake Time</label><input type="time" id="wakeTime"></div>
+          <div class="panel-row">
+            <div class="group"><label for="sleepHours">Total Hours</label><input type="number" id="sleepHours" min="0" max="24" step="0.5" placeholder="8.0"></div>
+            <div class="group"><label for="sleepQuality">Quality (1–10): <span id="qualityDisplay">5/10</span></label><input type="range" id="sleepQuality" min="1" max="10" value="5"></div>
+          </div>
+          <div class="group"><label for="wakeupsCount">Times Woken Up</label><input type="number" id="wakeupsCount" min="0" max="20" placeholder="0"></div>
+          <div class="group"><label>Environment</label>
+            <div>
+              <button class="chip" data-key="dark" aria-pressed="false">Dark</button>
+              <button class="chip" data-key="quiet" aria-pressed="false">Quiet</button>
+              <button class="chip" data-key="cool" aria-pressed="false">Cool</button>
+              <button class="chip" data-key="comfortable" aria-pressed="false">Comfortable</button>
+            </div>
+          </div>
+          <div class="group"><label>Pre-Sleep</label>
+            <div>
+              <button class="chip" data-key="reading" aria-pressed="false">Reading</button>
+              <button class="chip" data-key="meditation" aria-pressed="false">Meditation</button>
+              <button class="chip" data-key="screen" aria-pressed="false">Screen Time</button>
+              <button class="chip" data-key="exercise" aria-pressed="false">Exercise</button>
+            </div>
+          </div>
+          <button class="button primary" id="saveSleep">💾 Save Sleep</button>
+
+          <div class="stats">
+            <div class="stat"><div class="num" id="avgSleepHours">–</div><div class="lbl">Avg Hours</div></div>
+            <div class="stat"><div class="num" id="sleepEfficiency">–</div><div class="lbl">Efficiency</div></div>
+            <div class="stat"><div class="num" id="avgSleepQuality">–</div><div class="lbl">Avg Quality</div></div>
+            <div class="stat"><div class="num" id="bestSleepDay">–</div><div class="lbl">Best Day</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HEALTH -->
+    <section id="health" class="pane" role="tabpanel" aria-labelledby="tab-health" hidden>
+      <div class="grid">
+        <div class="card">
+          <h3>💪 Health & Fitness Board (28-day)</h3>
+          <table class="board"><thead><tr id="healthHeaders"></tr></thead><tbody id="healthBody"></tbody></table>
+          <div class="legend">
+            <div class="legend-item"><span class="square high-energy"></span><span>High</span></div>
+            <div class="legend-item"><span class="square medium-energy"></span><span>Moderate</span></div>
+            <div class="legend-item"><span class="square low-energy"></span><span>Light</span></div>
+            <div class="legend-item"><span class="square rest-day"></span><span>Rest</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>🏃‍♀️ Fitness Tracking</h3>
+          <div class="group"><label for="workoutType">Workout</label>
+            <select id="workoutType"><option value="">—</option><option>Cardio</option><option>Strength</option><option>Yoga</option><option>Sports</option><option>Walking</option><option>Swimming</option><option>Cycling</option><option>Rest</option></select>
+          </div>
+          <div class="panel-row">
+            <div class="group"><label for="workoutDuration">Duration (min)</label><input type="number" id="workoutDuration" min="0" max="300" placeholder="30"></div>
+            <div class="group"><label for="intensityLevel">Intensity (1–10): <span id="intensityDisplay">5/10</span></label><input type="range" id="intensityLevel" min="1" max="10" value="5"></div>
+          </div>
+          <div class="panel-row">
+            <div class="group"><label for="energyBefore">Energy Before: <span id="energyBeforeDisplay">5/10</span></label><input type="range" id="energyBefore" min="1" max="10" value="5"></div>
+            <div class="group"><label for="energyAfter">Energy After: <span id="energyAfterDisplay">5/10</span></label><input type="range" id="energyAfter" min="1" max="10" value="5"></div>
+          </div>
+          <div class="panel-row">
+            <div class="group"><label for="waterIntake">Water (glasses)</label><input type="number" id="waterIntake" min="0" max="20" placeholder="8"></div>
+            <div class="group"><label for="healthNotes">Notes</label><textarea id="healthNotes" placeholder="How did you feel?"></textarea></div>
+          </div>
+          <button class="button primary" id="saveHealth">💾 Save Health</button>
+          <div class="stats">
+            <div class="stat"><div class="num" id="weeklyWorkouts">–</div><div class="lbl">Workouts This Week</div></div>
+            <div class="stat"><div class="num" id="avgEnergyLevel">–</div><div class="lbl">Avg Energy</div></div>
+            <div class="stat"><div class="num" id="totalMinutes">–</div><div class="lbl">Minutes This Week</div></div>
+            <div class="stat"><div class="num" id="restDays">–</div><div class="lbl">Rest Days</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORK -->
+    <section id="work" class="pane" role="tabpanel" aria-labelledby="tab-work" hidden>
+      <div class="grid">
+        <div class="card">
+          <h3>💼 Work Rhythm Board (28-day)</h3>
+          <table class="board"><thead><tr id="workHeaders"></tr></thead><tbody id="workBody"></tbody></table>
+          <div class="legend">
+            <div class="legend-item"><span class="square focus-time"></span><span>Focus</span></div>
+            <div class="legend-item"><span class="square creative-time"></span><span>Creative</span></div>
+            <div class="legend-item"><span class="square admin-time"></span><span>Admin</span></div>
+            <div class="legend-item"><span class="square break-time"></span><span>Break</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3>🗒️ Notes</h3>
+          <div class="group"><label for="workNotes">Work log</label><textarea id="workNotes" rows="8" placeholder="Key tasks, blockers, wins…"></textarea></div>
+          <button class="button primary" id="saveWork">💾 Save Work</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUSTOM -->
+    <section id="custom" class="pane" role="tabpanel" aria-labelledby="tab-custom" hidden>
+      <div class="grid">
+        <div class="card">
+          <h3>⚙️ Custom 28-Day Cycle</h3>
+          <table class="board"><thead><tr id="customHeaders"></tr></thead><tbody id="customBody"></tbody></table>
+        </div>
+        <div class="card">
+          <h3>🔧 Configure</h3>
+          <div class="group"><label for="customName">Cycle Name</label><input id="customName" placeholder="e.g., Study, Rehab, Prayer"></div>
+          <div class="group"><label for="customNotes">Notes</label><textarea id="customNotes" rows="6" placeholder="Describe your custom cycle…"></textarea></div>
+          <button class="button primary" id="saveCustom">💾 Save Custom</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- INSIGHTS -->
+    <section id="insights" class="pane" role="tabpanel" aria-labelledby="tab-insights" hidden>
+      <div class="grid">
+        <div class="card">
+          <h3>📈 Cycle Insights</h3>
+          <div id="insightsList">Collect a few entries to see trends (cycle length, most common symptoms per phase, average BBT, water intake ↔ energy, average sleep).</div>
+          <div class="charts" style="margin-top:12px">
+            <canvas id="cycleChart" height="260"></canvas>
+            <canvas id="bbtChart" height="260"></canvas>
+            <canvas id="symptomsChart" height="260"></canvas>
+          </div>
+        </div>
+        <div class="card privacy">
+          <h3>🔒 Privacy & Sharing</h3>
+          <div class="row"><div>Anonymous Mode</div><button class="button" id="anonToggle">Enable</button></div>
+          <div class="row"><div>Set Passcode (encrypt data)</div><button class="button" id="setPass">Set</button></div>
+          <div class="row"><div>Lock Now</div><button class="button primary" id="lockNow">Lock</button></div>
+          <hr style="border:none; border-top:1px solid rgba(255,255,255,.35); margin:10px 0;">
+          <div class="row"><div>Partner Snapshot (copy)</div><button class="button" id="copyPartner">Copy</button></div>
+          <div class="row"><div>Import Snapshot</div><button class="button" id="importPartner">Paste</button></div>
+        </div>
+      </div>
+      <div class="export">
+        <em>Tip:</em> Use <strong>Print / PDF</strong> to generate a friendly report of your insights.
+      </div>
+    </section>
+  </div>
+
+  <div class="toast" id="toast">Saved ✅</div>
+  <input type="file" id="importJson" accept="application/json" hidden>
+
+  <script>
+    // ===== Utilities =====
+    const $  = (id)  => document.getElementById(id);
+    const qs = (sel) => document.querySelector(sel);
+
+    const STORAGE_KEY = (tab) => `hpc_tracker_${tab}`;
+    const PREFS_KEY   = 'hpc_prefs';
+    const SECURE_KEY  = 'hpc_secure_blob';
+    const ANON_KEY    = 'hpc_anon';
+
+    function showToast(msg='Saved ✅'){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),1600); }
+    function fmtDate(d){ return d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); }
+    function parseTimeToMinutes(t){ if(!t) return null; const [h,m]=t.split(':').map(Number); return h*60+m; }
+    function minutesToHours(m){ return (m/60).toFixed(1); }
+    const mean = (arr)=>arr.reduce((s,x)=>s+x,0)/Math.max(1,arr.length);
+    const stddev = (arr)=>{ if(!arr.length) return 0; const m=mean(arr); return Math.sqrt(mean(arr.map(x=> (x-m)**2))); };
+
+    // ===== Tabs =====
+    function switchTab(id){
+      document.querySelectorAll('.pane').forEach(p=>p.hidden=true);
+      $(id).hidden=false;
+      document.querySelectorAll('.tab').forEach(b=>{ b.classList.remove('active'); b.setAttribute('aria-selected','false'); });
+      const btn=document.querySelector(`[aria-controls="${id}"]`);
+      if(btn){ btn.classList.add('active'); btn.setAttribute('aria-selected','true'); }
+      renderAllHeaders();
+      if(id==='insights') computeInsights();
+    }
+
+    // ===== Headers =====
+  const WEEK_SETS = {
+  Sun:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+  Mon:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+  Tue:['Tue','Wed','Thu','Fri','Sat','Sun','Mon'],
+  Wed:['Wed','Thu','Fri','Sat','Sun','Mon','Tue'],
+  Thu:['Thu','Fri','Sat','Sun','Mon','Tue','Wed'],
+  Fri:['Fri','Sat','Sun','Mon','Tue','Wed','Thu'],
+  Sat:['Sat','Sun','Mon','Tue','Wed','Thu','Fri']
+};
+    function renderHeaders(containerId){
+      const ws = $('weekStart').value || 'Sun';
+      const headers = WEEK_SETS[ws] || WEEK_SETS['Sun'];
+      $(containerId).innerHTML = headers.map(h=>`<th>${h}</th>`).join('');
+    }
+    function renderAllHeaders(){ ['fertility','sleep','health','work','custom'].forEach(prefix=> renderHeaders(prefix+'Headers')); }
+
+    // ===== 28-day boards =====
+    function render28(tbodyId, painter){
+      const cells = Array.from({length:28},(_,i)=>i+1);
+      const rows  = [cells.slice(0,7),cells.slice(7,14),cells.slice(14,21),cells.slice(21,28)];
+      $(tbodyId).innerHTML = rows.map(r=>`<tr>${r.map(day=>painter(day)).join('')}</tr>`).join('');
+    }
+    const fertilityPainter = (d) => {
+      const dots = d <= 5 ? ['menstrual'] : d <= 13 ? ['follicular'] : d <= 15 ? ['ovulation'] : ['luteal'];
+      return `<td data-day="${d}"><div class="day day-${d}">${d}</div><div class="dots">${dots.map(c => `<span class="dot ${c}"></span>`).join('')}</div></td>`;
+    };
+    const map4 = (d, classes) => `<td data-day="${d}"><div class="day">${d}</div><div class="dots"><span class="dot ${classes[(d-1)%4]}"></span></div></td>`;
+
+    // ===== Chips =====
+    function toggleChip(btn){ const p=btn.getAttribute('aria-pressed')==='true'; btn.setAttribute('aria-pressed', String(!p)); }
+
+    // ===== Save Daily =====
+    function saveDaily(tab){
+      const todayISO = new Date().toISOString().slice(0,10);
+      const payload  = { date: todayISO };
+
+      if(tab==='fertility'){
+        payload.lastPeriod  = $('lastPeriodDate').value || null;
+        payload.cycleLength = Number($('cycleLength').value || 28);
+        payload.flow        = $('flowIntensity').value || null;
+        payload.mood        = Number($('moodLevel').value || 5);
+        payload.symptoms    = [...document.querySelectorAll('#fertility .chip[aria-pressed="true"]')].map(b=>b.dataset.key);
+        payload.bbt         = parseFloat($('bbt').value) || null;
+        payload.lh          = [...document.querySelectorAll('#ttcRow .chip[aria-pressed="true"]')].map(b=>b.dataset.key);
+        payload.cervical    = $('cervical').value || '';
+        payload.notes       = $('fertilityNotes').value || '';
+        updateFertilityPredictions();
+      }
+      if(tab==='sleep'){
+        payload.bedtime = $('bedtime').value || null;
+        payload.wakeTime= $('wakeTime').value || null;
+        payload.hours   = Number($('sleepHours').value || 0);
+        payload.quality = Number($('sleepQuality').value || 5);
+        payload.wakeups = Number($('wakeupsCount').value || 0);
+        payload.env     = [...document.querySelectorAll('#sleep .chip[aria-pressed="true"]')].map(b=>b.dataset.key);
+      }
+      if(tab==='health'){
+        payload.type        = $('workoutType').value || '';
+        payload.duration    = Number($('workoutDuration').value || 0);
+        payload.intensity   = Number($('intensityLevel').value || 5);
+        payload.energyBefore= Number($('energyBefore').value || 5);
+        payload.energyAfter = Number($('energyAfter').value || 5);
+        payload.water       = Number($('waterIntake').value || 0);
+        payload.notes       = $('healthNotes').value || '';
+      }
+      if(tab==='work'){   payload.notes = $('workNotes').value   || ''; }
+      if(tab==='custom'){ payload.name  = $('customName').value  || ''; payload.notes = $('customNotes').value || ''; }
+
+      const key  = STORAGE_KEY(tab);
+      const list = JSON.parse(localStorage.getItem(key) || '[]');
+      list.push(payload);
+      localStorage.setItem(key, JSON.stringify(list));
+      showToast();
+
+      if(tab==='sleep')  aggregateSleep();
+      if(tab==='health') aggregateHealth();
+      if(tab==='fertility'){ computeInsights(); drawAllCharts(); irregularityChecks(); }
+    }
+
+    // ===== Predictions & Heuristics =====
+    function getCycleHistory(){
+      const list = JSON.parse(localStorage.getItem(STORAGE_KEY('fertility')) || '[]');
+      const lengths = list.filter(x=>x.cycleLength).map(x=>Number(x.cycleLength));
+      return { list, lengths };
+    }
+    function rollingAvgCycleLen(n=6){
+      const {lengths} = getCycleHistory();
+      if(!lengths.length) return null;
+      const last = lengths.slice(-n);
+      return Math.round(mean(last));
+    }
+    function updateFertilityPredictions(){
+      const last = $('lastPeriodDate').value;
+      const len  = Number($('cycleLength').value || rollingAvgCycleLen() || 28);
+      if(!last) return;
+
+      const lastDate = new Date(last);
+      const today    = new Date();
+
+      // day in cycle
+      const dayInCycle = ((Math.floor((today - lastDate)/86400000)) % len + len) % len + 1;
+      $('cycleDayNumber').textContent = dayInCycle;
+
+      // improved ovulation estimate
+      let ovulationDay = Math.max(1, Math.min(len, len - 14));
+      const hist = JSON.parse(localStorage.getItem(STORAGE_KEY('fertility')) || '[]');
+      const bbts = hist.map(x=>x.bbt).filter(v=>typeof v==='number' && !isNaN(v));
+      const recentLH = hist.flatMap(x=>x.lh||[]).includes('lh-positive');
+
+      if(bbts.length >= 4){
+        const base = mean(bbts.slice(-4,-1));
+        const todayBBT = parseFloat($('bbt').value);
+        if(todayBBT && todayBBT - base >= 0.2) ovulationDay = dayInCycle;
+      }
+      if(recentLH) ovulationDay = Math.min(ovulationDay, dayInCycle + 1);
+
+      // dates
+      const nextOv  = new Date(lastDate.getTime() + ovulationDay*86400000);
+      while(nextOv < today) nextOv.setDate(nextOv.getDate() + len);
+
+      const nextPer = new Date(lastDate.getTime());
+      while(nextPer < today) nextPer.setDate(nextPer.getDate() + len);
+
+      const fertileStart = new Date(nextOv); fertileStart.setDate(fertileStart.getDate() - 5);
+      const fertileEnd   = new Date(nextOv); fertileEnd.setDate(fertileEnd.getDate() + 1);
+
+      // write predictions
+      $('daysToOvulation').textContent  = Math.max(0, Math.ceil((nextOv - today)/86400000));
+      $('daysToNextPeriod').textContent = Math.max(0, Math.ceil((nextPer - today)/86400000));
+      $('nextOvulationDate').textContent= fmtDate(nextOv);
+      $('nextPeriodDate').textContent   = fmtDate(nextPer);
+      $('nextFertileWindow').textContent= `${fmtDate(fertileStart)} → ${fmtDate(fertileEnd)}`;
+
+      // averages
+      $('avgCycleLength').textContent = rollingAvgCycleLen() || len;
+
+      // pregnancy EDD (Naegele = LMP + 280 days)
+      if ($('lifecycleMode').value === 'pregnancy') {
+        const due = new Date(lastDate);
+        due.setDate(due.getDate() + 280);
+        $('dueDate').textContent = fmtDate(due);
+        $('dueDateRow').style.display = 'flex';
+      } else {
+        $('dueDateRow').style.display = 'none';
+      }
+
+      // quick BBT alert
+      if (bbts.length >= 4) {
+        const base = mean(bbts.slice(-4,-1));
+        const todayBBT = parseFloat($('bbt').value);
+        if (todayBBT && todayBBT - base >= 0.2) {
+          addAlert('fertilityAlerts','🔥 BBT suggests ovulation likely occurred');
+        }
+      }
+
+      irregularityChecks();
+    }
+
+    // ===== Perimenopause variability & irregularity alerts =====
+    function irregularityChecks(){
+      const { lengths } = getCycleHistory();
+      if (lengths.length < 3) {
+        $('periIndex').textContent = '—';
+        return;
+      }
+
+      // Compute coefficient of variation over the last up-to-6 cycles
+      const last = lengths.slice(-6);
+      const m = mean(last);
+      const s = stddev(last);
+      const cv = m ? (s / m) : 0;
+      $('periIndex').textContent = (cv * 100).toFixed(1) + '%';
+
+      // Alerts
+      if (s >= 7) {
+        addAlert('fertilityAlerts', '⚠️ High cycle variability (σ ≥ 7d). Consider discussing with a clinician if unexpected.');
+      }
+
+      const recent = lengths.slice(-3);
+      if (recent.length === 3) {
+        const maxd = Math.max(...recent) - Math.min(...recent);
+        if (maxd >= 10) {
+          addAlert('fertilityAlerts', '⚠️ Last 3 cycles vary by ≥10 days.');
+        }
+      }
+    }
+
+    function computeInsights(){
+      const out   = $('insightsList');
+      const fert  = JSON.parse(localStorage.getItem(STORAGE_KEY('fertility'))||'[]');
+      const health= JSON.parse(localStorage.getItem(STORAGE_KEY('health'))||'[]');
+      const sleep = JSON.parse(localStorage.getItem(STORAGE_KEY('sleep'))||'[]');
+
+      if (!(fert.length || health.length || sleep.length)) {
+        out.textContent = 'Collect a few entries to see trends.';
+        drawAllCharts();
+        return;
+      }
+
+      const cycles   = fert.filter(x=>x.cycleLength).map(x=>Number(x.cycleLength));
+      const avgCycle = cycles.length ? mean(cycles).toFixed(1) : '—';
+
+      const symptomsCount = {};
+      fert.forEach(x => (x.symptoms||[]).forEach(s => symptomsCount[s] = (symptomsCount[s]||0)+1));
+      const topSym = Object.entries(symptomsCount).sort((a,b)=>b[1]-a[1])[0];
+
+      const avgBBT = (() => {
+        const arr = fert.map(x=>x.bbt).filter(v=>typeof v==='number' && !isNaN(v));
+        return arr.length ? mean(arr).toFixed(2) : '—';
+      })();
+
+      const avgWater = (() => {
+        const arr = health.map(x=>x.water).filter(Number);
+        return arr.length ? mean(arr).toFixed(1) : '—';
+      })();
+
+      const avgEnergy = (() => {
+        const arr = health.map(x=>x.energyAfter).filter(Number);
+        return arr.length ? mean(arr).toFixed(1) : '—';
+      })();
+
+      const avgSleepH = (() => {
+        const arr = sleep.map(x=>x.hours).filter(Number);
+        return arr.length ? mean(arr).toFixed(1) : '—';
+      })();
+
+      out.innerHTML = `<ul style="line-height:1.9">
+        <li><strong>Avg cycle length:</strong> ${avgCycle} days (last ${Math.min(6, cycles.length)||0})</li>
+        <li><strong>Most frequent symptom:</strong> ${topSym ? `${topSym[0]} (${topSym[1]})` : '—'}</li>
+        <li><strong>Avg BBT:</strong> ${avgBBT} °C</li>
+        <li><strong>Hydration ↔ Energy:</strong> Avg water ${avgWater} glasses; Avg post-workout energy ${avgEnergy}/10</li>
+        <li><strong>Avg sleep:</strong> ${avgSleepH} h/night</li>
+      </ul>`;
+
+      drawAllCharts();
+    }
+
+    // ===== Charts (no external libs) =====
+    function drawLineChart(canvasId, labels, values){
+      const c=$(canvasId); if(!c) return;
+      const ctx=c.getContext('2d');
+      const w=c.width=c.clientWidth, h=c.height=c.clientHeight, pad=40;
+      ctx.clearRect(0,0,w,h);
+
+      const maxVal = Math.max(...values, 1);
+      const minVal = Math.min(...values, 0);
+      const span   = (maxVal - minVal) || 1;
+
+      // axes
+      ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--border');
+      ctx.lineWidth=1; ctx.beginPath();
+      ctx.moveTo(pad, pad/2); ctx.lineTo(pad, h-pad); ctx.lineTo(w-pad/2, h-pad); ctx.stroke();
+
+      // ticks
+      ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--muted');
+      ctx.font='12px system-ui'; ctx.textAlign='right';
+      ctx.fillText(maxVal.toFixed(0), pad-6, pad/2+4);
+      ctx.fillText(minVal.toFixed(0), pad-6, h-pad+4);
+
+      // line
+      ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--accent');
+      ctx.lineWidth=2; ctx.beginPath();
+      values.forEach((v,i)=>{
+        const x=pad + (i*(w-2*pad))/Math.max(1,values.length-1);
+        const y=h-pad - ((v-minVal)*(h-2*pad))/span;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.stroke();
+
+      // points
+      ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--accent2');
+      values.forEach((v,i)=>{
+        const x=pad + (i*(w-2*pad))/Math.max(1,values.length-1);
+        const y=h-pad - ((v-minVal)*(h-2*pad))/span;
+        ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+      });
+
+      // labels
+      ctx.textAlign='center';
+      ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--muted');
+      labels.forEach((lab,i)=>{
+        const x=pad + (i*(w-2*pad))/Math.max(1,labels.length-1);
+        ctx.fillText(lab, x, h-8);
+      });
+    }
+
+    function drawBarChart(canvasId, labels, values){
+      const c=$(canvasId); if(!c) return;
+      const ctx=c.getContext('2d');
+      const w=c.width=c.clientWidth, h=c.height=c.clientHeight, pad=40;
+      ctx.clearRect(0,0,w,h);
+
+      const maxVal = Math.max(...values, 1);
+      const slotW  = (w-2*pad)/Math.max(1,values.length);
+      const barW   = slotW*0.6;
+
+      // axes
+      ctx.strokeStyle=getComputedStyle(document.body).getPropertyValue('--border');
+      ctx.lineWidth=1; ctx.beginPath();
+      ctx.moveTo(pad, pad/2); ctx.lineTo(pad, h-pad); ctx.lineTo(w-pad/2, h-pad); ctx.stroke();
+
+      // bars
+      ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--accent');
+      values.forEach((v,i)=>{
+        const x = pad + i*slotW + (slotW-barW)/2;
+        const y = h - pad - (v/maxVal)*(h-2*pad);
+        ctx.fillRect(x, y, barW, (h-pad)-y);
+      });
+
+      // labels
+      ctx.fillStyle=getComputedStyle(document.body).getPropertyValue('--muted');
+      ctx.textAlign='center';
+      labels.forEach((lab,i)=>{
+        const x=pad + i*slotW + slotW/2;
+        ctx.fillText(lab, x, h-8);
+      });
+    }
+
+    function drawAllCharts(){
+      const fert = JSON.parse(localStorage.getItem(STORAGE_KEY('fertility'))||'[]');
+
+      // cycle length trend (last 12)
+      const cycleLens = fert.filter(x=>x.cycleLength).slice(-12);
+      const cLabels   = cycleLens.map((_,i)=>String(i+1));
+      const cValues   = cycleLens.map(x=>Number(x.cycleLength));
+      if (cValues.length >= 2) drawLineChart('cycleChart', cLabels, cValues);
+
+      // BBT trend (last 30)
+      const bbtValues = fert.map(x=>x.bbt).filter(v=>typeof v==='number' && !isNaN(v)).slice(-30);
+      const bLabels   = bbtValues.map((_,i)=>String(i+1));
+      if (bbtValues.length >= 2) drawLineChart('bbtChart', bLabels, bbtValues);
+
+      // symptoms frequency (last 60)
+      const freq = {};
+      fert.slice(-60).forEach(x => (x.symptoms||[]).forEach(s => freq[s] = (freq[s]||0)+1));
+      const sLabs = Object.keys(freq), sVals = Object.values(freq);
+      if (sLabs.length) drawBarChart('symptomsChart', sLabs, sVals);
+    }
+
+    // ===== Sleep & Health aggregates =====
+    function calculateSleepHours(){
+      const bt = parseTimeToMinutes($('bedtime').value);
+      const wt = parseTimeToMinutes($('wakeTime').value);
+      if (bt==null || wt==null) return;
+      let diff = wt - bt;
+      if (diff < 0) diff += 24*60;
+      $('sleepHours').value = minutesToHours(diff);
+    }
+
+    function aggregateSleep(){
+      const list = JSON.parse(localStorage.getItem(STORAGE_KEY('sleep'))||'[]');
+      if (!list.length) return;
+      const avgH = mean(list.map(x=>x.hours||0));
+      const avgQ = mean(list.map(x=>x.quality||0));
+      $('avgSleepHours').textContent  = avgH.toFixed(1);
+      $('avgSleepQuality').textContent= avgQ.toFixed(1);
+      $('sleepEfficiency').textContent= Math.round((avgQ/10)*100)+'%';
+      $('bestSleepDay').textContent   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][new Date().getDay()];
+    }
+
+    function aggregateHealth(){
+      const list = JSON.parse(localStorage.getItem(STORAGE_KEY('health'))||'[]');
+      if (!list.length) return;
+      const weekAgo  = Date.now() - 7*86400000;
+      const lastWeek = list.filter(x=> new Date(x.date).getTime() >= weekAgo);
+      const workouts = lastWeek.filter(x=>x.type && x.type!=='Rest').length;
+      const mins     = lastWeek.reduce((s,x)=>s+(x.duration||0),0);
+      const avgEnergy= lastWeek.reduce((s,x)=>s+(x.energyAfter||0),0) / (lastWeek.length||1);
+      const rest     = lastWeek.filter(x=>x.type==='Rest').length;
+
+      $('weeklyWorkouts').textContent = workouts;
+      $('totalMinutes').textContent   = mins;
+      $('avgEnergyLevel').textContent = (avgEnergy||0).toFixed(1);
+      $('restDays').textContent       = rest;
+    }
+
+    // ===== Export / Import =====
+    function exportCSV(){
+      const tabs=['fertility','sleep','health','work','custom'];
+      const rows=[];
+      for(const t of tabs){
+        const list=JSON.parse(localStorage.getItem(STORAGE_KEY(t))||'[]');
+        for(const item of list) rows.push({tab:t, ...item});
+      }
+      if(!rows.length) return showToast('Nothing to export');
+      const headers = Array.from(rows.reduce((set,row)=>{Object.keys(row).forEach(k=>set.add(k)); return set;}, new Set(['tab'])));
+      const csv = [headers.join(',')].concat(rows.map(r=>headers.map(h=>JSON.stringify(r[h]??'')).join(','))).join('\n');
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='hpc_cycle_tracker_export.csv'; a.click(); URL.revokeObjectURL(url);
+    }
+    function exportJSON(){
+      const tabs=['fertility','sleep','health','work','custom'];
+      const dump={ version:1, exportedAt:new Date().toISOString(), data:{}, prefs: JSON.parse(localStorage.getItem(PREFS_KEY)||'{}') };
+      for(const t of tabs) dump.data[t]=JSON.parse(localStorage.getItem(STORAGE_KEY(t))||'[]');
+      const blob=new Blob([JSON.stringify(dump)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='hpc_cycle_tracker_backup.json'; a.click(); URL.revokeObjectURL(url);
+    }
+    function importJSONFile(){ $('importJson').click(); }
+    $('importJson')?.addEventListener('change', async (e)=>{
+      const f=e.target.files?.[0]; if(!f) return;
+      const text=await f.text();
+      try{
+        const obj=JSON.parse(text);
+        if(obj?.data){
+          for(const [k,v] of Object.entries(obj.data)) localStorage.setItem(STORAGE_KEY(k), JSON.stringify(v));
+          if(obj.prefs) localStorage.setItem(PREFS_KEY, JSON.stringify(obj.prefs));
+          showToast('Imported'); initAll();
+        }
+      }catch(err){ alert('Invalid JSON'); }
+      e.target.value='';
+    });
+
+    // ===== Privacy: Anonymous + Encryption Lock =====
+    function toggleAnonymous(){
+      const enabled = localStorage.getItem(ANON_KEY)==='1';
+      if(enabled){ localStorage.removeItem(ANON_KEY); $('anonToggle').textContent='Enable'; showToast('Anonymous mode off'); }
+      else { localStorage.setItem(ANON_KEY,'1'); $('anonToggle').textContent='Disable'; showToast('Anonymous mode on'); }
+    }
+    async function setPasscode(){
+      const pass=prompt('Set a passcode (min 6 chars):');
+      if(!pass || pass.length<6) return alert('Passcode too short.');
+      const prefs=JSON.parse(localStorage.getItem(PREFS_KEY)||'{}');
+      prefs.passcodeSet=true; localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+      localStorage.setItem('hpc_pass_hint', pass.slice(0,1)+'•••');
+      showToast('Passcode set');
+    }
+    async function lockNow(){
+      const pass=prompt('Enter passcode to lock (data will be encrypted on this device)');
+      if(!pass) return;
+      const dump={};
+      ['fertility','sleep','health','work','custom'].forEach(t=> dump[t]=JSON.parse(localStorage.getItem(STORAGE_KEY(t))||'[]'));
+      const prefs=JSON.parse(localStorage.getItem(PREFS_KEY)||'{}'); dump.prefs=prefs;
+      const enc=await encryptData(JSON.stringify(dump), pass);
+      localStorage.setItem(SECURE_KEY, enc);
+      // clear plain storage
+      ['fertility','sleep','health','work','custom'].forEach(t=> localStorage.removeItem(STORAGE_KEY(t)));
+      showToast('Locked & encrypted'); location.reload();
+    }
+    async function unlockIfNeeded(){
+      const has=localStorage.getItem(SECURE_KEY); if(!has) return;
+      const pass=prompt('Enter passcode to unlock your encrypted data');
+      if(!pass) return;
+      try{
+        const json=await decryptData(has, pass);
+        const dump=JSON.parse(json);
+        for(const [k,v] of Object.entries(dump)){
+          if(k==='prefs') localStorage.setItem(PREFS_KEY, JSON.stringify(v));
+          else localStorage.setItem(STORAGE_KEY(k), JSON.stringify(v));
+        }
+        localStorage.removeItem(SECURE_KEY); showToast('Unlocked');
+      }catch(e){ alert('Wrong passcode'); }
+    }
+    // WebCrypto helpers
+    async function getKeyFromPass(pass, salt){
+      const enc=new TextEncoder();
+      const baseKey=await crypto.subtle.importKey('raw', enc.encode(pass), 'PBKDF2', false, ['deriveKey']);
+      return crypto.subtle.deriveKey({name:'PBKDF2', salt, iterations:100000, hash:'SHA-256'},
+        baseKey, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+    }
+    async function encryptData(plain, pass){
+      const enc=new TextEncoder(); const salt=crypto.getRandomValues(new Uint8Array(16)); const iv=crypto.getRandomValues(new Uint8Array(12));
+      const key=await getKeyFromPass(pass, salt);
+      const cipher=await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(plain));
+      const buf=new Uint8Array([...salt, ...iv, ...new Uint8Array(cipher)]);
+      return btoa(String.fromCharCode(...buf));
+    }
+    async function decryptData(b64, pass){
+      const bin=Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+      const salt=bin.slice(0,16), iv=bin.slice(16,28), data=bin.slice(28);
+      const key=await getKeyFromPass(pass, salt);
+      const plain=await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, data);
+      return new TextDecoder().decode(plain);
+    }
+
+    // ===== Partner snapshot =====
+    function copyPartner(){
+      const snap={ version:1, date:new Date().toISOString(),
+        predictions:{ nextPeriod:$('nextPeriodDate').textContent, nextOvulation:$('nextOvulationDate').textContent, fertile:$('nextFertileWindow').textContent },
+        currentDay:$('cycleDayNumber').textContent, mode:$('lifecycleMode').value };
+      navigator.clipboard.writeText(JSON.stringify(snap));
+      showToast('Partner snapshot copied');
+    }
+    function importPartner(){
+      const text=prompt('Paste partner snapshot JSON here');
+      if(!text) return;
+      try{
+        const obj=JSON.parse(text);
+        alert(`Partner snapshot loaded:\nMode: ${obj.mode}\nNext Period: ${obj.predictions?.nextPeriod}\nNext Ovulation: ${obj.predictions?.nextOvulation}`);
+      }catch(e){ alert('Invalid JSON'); }
+    }
+
+    // ===== Alerts helper =====
+    function addAlert(containerId, message){
+      const c=$(containerId); if(!c) return;
+      const div=document.createElement('div');
+      div.className='item'; div.textContent=message; c.appendChild(div);
+    }
+
+    // ===== Lifecycle mode UI =====
+    function applyLifecycleMode(){
+      const mode=$('lifecycleMode').value;
+      const isTTC = mode==='ttc';
+      const isPreg= mode==='pregnancy';
+      $('ttcRow').style.display = isTTC ? 'block':'none';
+      $('cervicalRow').style.display = isTTC ? 'block':'none';
+      $('dueDateRow').style.display  = isPreg? 'flex':'none';
+      const lbl = document.querySelector('#fertility h3');
+      if (lbl) lbl.textContent = isPreg ? '🤰 Pregnancy (EDD & milestones)' : '🌸 Cycle Board (28-day)';
+      updateFertilityPredictions();
+    }
+
+    // ===== Prefs, Dark Mode, Init =====
+    function restorePrefs(){
+      const prefs=JSON.parse(localStorage.getItem(PREFS_KEY)||'{}');
+      if(prefs.dark){ document.body.classList.add('dark'); }
+      $('darkToggle').textContent = document.body.classList.contains('dark') ? '☀️ Light' : '🌙 Dark';
+      $('darkToggle').setAttribute('aria-pressed', document.body.classList.contains('dark'));
+      if(prefs.weekStart) $('weekStart').value=prefs.weekStart;
+      if(prefs.mode) $('lifecycleMode').value=prefs.mode;
+    }
+    function savePrefs(){
+      const prefs=JSON.parse(localStorage.getItem(PREFS_KEY)||'{}');
+      prefs.dark = document.body.classList.contains('dark');
+      prefs.weekStart = $('weekStart').value;
+      prefs.mode = $('lifecycleMode').value;
+      localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+    }
+    function toggleDark(){
+      const pressed = document.body.classList.toggle('dark');
+      $('darkToggle').textContent = pressed ? '☀️ Light' : '🌙 Dark';
+      $('darkToggle').setAttribute('aria-pressed', String(pressed));
+      savePrefs(); drawAllCharts();
+    }
+
+    // ===== INIT (wires everything + renders boards) =====
+    function initAll(){
+      restorePrefs();
+      unlockIfNeeded();
+
+      // week headers + 28-day boards
+      renderAllHeaders();
+      render28('fertilityBody', fertilityPainter);
+      render28('sleepBody', d => map4(d, ['deep-sleep','rem-sleep','light-sleep','awake']));
+      render28('healthBody', d => map4(d, ['high-energy','medium-energy','low-energy','rest-day']));
+      render28('workBody',   d => map4(d, ['focus-time','creative-time','admin-time','break-time']));
+      render28('customBody', d => map4(d, ['focus-time','creative-time','admin-time','break-time']));
+
+      // tab handlers
+      document.querySelectorAll('.tab').forEach(btn=>{
+        btn.addEventListener('click', ()=> switchTab(btn.getAttribute('aria-controls')));
+      });
+
+      // controls
+      $('darkToggle').addEventListener('click', toggleDark);
+      $('printBtn').addEventListener('click', ()=>window.print());
+      $('exportCsv').addEventListener('click', exportCSV);
+      $('exportJson').addEventListener('click', exportJSON);
+      $('importJsonBtn').addEventListener('click', importJSONFile);
+
+      $('weekStart').addEventListener('change', ()=>{ savePrefs(); renderAllHeaders(); });
+      $('lifecycleMode').addEventListener('change', ()=>{ applyLifecycleMode(); savePrefs(); });
+
+      // fertility inputs -> live predictions
+      $('lastPeriodDate').addEventListener('change', updateFertilityPredictions);
+      $('cycleLength').addEventListener('change', updateFertilityPredictions);
+      $('bbt').addEventListener('change', updateFertilityPredictions);
+
+      // chips
+      document.querySelectorAll('.chip').forEach(chip=> chip.addEventListener('click', ()=>toggleChip(chip)));
+
+      // save buttons
+      $('saveFertility').addEventListener('click', ()=>saveDaily('fertility'));
+      $('saveSleep').addEventListener('click', ()=>saveDaily('sleep'));
+      $('saveHealth').addEventListener('click', ()=>saveDaily('health'));
+      $('saveWork').addEventListener('click', ()=>saveDaily('work'));
+      $('saveCustom').addEventListener('click', ()=>saveDaily('custom'));
+
+      // sleep helpers
+      const wt = $('wakeTime'); const bt = $('bedtime');
+      [wt, bt].forEach(el=> el.addEventListener('change', calculateSleepHours));
+
+      // privacy buttons
+      $('anonToggle').addEventListener('click', toggleAnonymous);
+      $('setPass').addEventListener('click', setPasscode);
+      $('lockNow').addEventListener('click', lockNow);
+      $('copyPartner').addEventListener('click', copyPartner);
+      $('importPartner').addEventListener('click', importPartner);
+
+      // first render
+      applyLifecycleMode();
+      computeInsights();
+      drawAllCharts();
+      updateFertilityPredictions();
+    }
+
+    document.addEventListener('DOMContentLoaded', initAll);
+  </script>
+  <script>
+// Service Worker Registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(registration => {
+        console.log('SW registered: ', registration);
+        
+        // Check for updates
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New content available, show update prompt
+              if (confirm('New version available! Refresh to update?')) {
+                window.location.reload();
+              }
+            }
+          });
+        });
+      })
+      .catch(registrationError => {
+        console.log('SW registration failed: ', registrationError);
+      });
+  });
+}
+
+// Handle app install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  // Show install button or banner
+  showInstallPromotion();
+});
+
+function showInstallPromotion() {
+  // You can add UI to show install prompt
+  console.log('App can be installed');
+}
+
+// Handle successful app install
+window.addEventListener('appinstalled', (evt) => {
+  console.log('App was installed');
+  // Track installation analytics if needed
+});
+</script>
+</body>
+</html>

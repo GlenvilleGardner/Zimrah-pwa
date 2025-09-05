@@ -1,0 +1,47 @@
+{
+  "name": "Zimrah - HPC Cycle Planner & Health Tracker",
+  "short_name": "Zimrah",
+  "description": "Local, private, and extensible health tracking built for the 28-day rhythm",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#667eea",
+  "theme_color": "#667eea",
+  "orientation": "portrait-primary",
+  "categories": ["health", "lifestyle", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512", 
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Track Fertility",
+      "short_name": "Fertility",
+      "description": "Quick access to fertility tracking",
+      "url": "./?tab=fertility",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Track Sleep",
+      "short_name": "Sleep",
+      "description": "Quick access to sleep tracking",
+      "url": "./?tab=sleep",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
