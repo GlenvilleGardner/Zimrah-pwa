@@ -136,6 +136,37 @@ body.dark .board td { background: #0f172a !important; color: #e5e7eb !important;
 
 /* Ensure header/top and footer/bottom areas don't bleed */
 .app, header, footer { overflow: hidden; }
+	 /* Better mobile text handling */
+@media (max-width: 768px) {
+  .title h1 {
+    font-size: 1.4rem !important;
+    line-height: 1.2 !important;
+    word-break: break-word;
+    hyphens: auto;
+  }
+  
+  .title p {
+    font-size: 0.9rem !important;
+    line-height: 1.4 !important;
+    word-break: break-word;
+  }
+  
+  .header {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .controls {
+    justify-content: flex-start !important;
+    flex-wrap: wrap;
+  }
+  
+  /* Prevent horizontal overflow */
+  .app {
+    padding: 16px !important;
+    margin: 10px !important;
+  }
+} 
 </style>
 </head>
 <body>
